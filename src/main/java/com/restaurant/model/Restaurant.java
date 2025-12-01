@@ -35,8 +35,7 @@ public class Restaurant {
     private Long id;
 
     @NotBlank(message = "Restaurant name is required")
-    @Size(min = MIN_NAME_LENGTH, max = MAX_NAME_LENGTH, 
-          message = "Restaurant name must be between 2 and 100 characters")
+    @Size(min = MIN_NAME_LENGTH, max = MAX_NAME_LENGTH, message = "Restaurant name must be between 2 and 100 characters")
     @Column(nullable = false)
     private String name;
 
@@ -67,13 +66,14 @@ public class Restaurant {
     public Restaurant() {
     }
 
-    public Restaurant(String name, String address, String phone, 
-                      LocalTime openingTime, LocalTime closingTime) {
+    public Restaurant(String name, String address, String phone,
+            LocalTime openingTime, LocalTime closingTime) {
         validateName(name);
         validateAddress(address);
         validatePhone(phone);
         validateOpeningTime(openingTime);
         validateClosingTime(closingTime);
+        validateBusinessHours(openingTime, closingTime);
 
         this.name = name;
         this.address = address;
@@ -131,6 +131,7 @@ public class Restaurant {
 
     public void setOpeningTime(LocalTime openingTime) {
         validateOpeningTime(openingTime);
+        validateBusinessHours(openingTime, this.closingTime);
         this.openingTime = openingTime;
     }
 
@@ -140,6 +141,7 @@ public class Restaurant {
 
     public void setClosingTime(LocalTime closingTime) {
         validateClosingTime(closingTime);
+        validateBusinessHours(this.openingTime, closingTime);
         this.closingTime = closingTime;
     }
 
@@ -194,6 +196,12 @@ public class Restaurant {
     private void validateClosingTime(LocalTime closingTime) {
         if (closingTime == null) {
             throw new IllegalArgumentException("Closing time cannot be null");
+        }
+    }
+
+    private void validateBusinessHours(LocalTime openingTime, LocalTime closingTime) {
+        if (openingTime != null && closingTime != null && !openingTime.isBefore(closingTime)) {
+            throw new IllegalArgumentException("Opening time must be before closing time");
         }
     }
 }
