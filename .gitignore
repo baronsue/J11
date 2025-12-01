@@ -1,0 +1,36 @@
+# Maven
+target/
+*.jar
+*.war
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+
+# IDE - VS Code
+.vscode/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Build
+build/
+out/
+
+# Logs
+*.log
+logs/
+
+# H2 Database files
+*.db
+*.trace.db
+*.lock.db
+
