@@ -75,9 +75,9 @@ public class Restaurant {
         validateClosingTime(closingTime);
         validateBusinessHours(openingTime, closingTime);
 
-        this.name = name;
-        this.address = address;
-        this.phone = phone;
+        this.name = name.trim();
+        this.address = address.trim();
+        this.phone = phone.trim();
         this.openingTime = openingTime;
         this.closingTime = closingTime;
     }
@@ -96,7 +96,7 @@ public class Restaurant {
 
     public void setName(String name) {
         validateName(name);
-        this.name = name;
+        this.name = name.trim();
     }
 
     public String getAddress() {
@@ -105,7 +105,7 @@ public class Restaurant {
 
     public void setAddress(String address) {
         validateAddress(address);
-        this.address = address;
+        this.address = address.trim();
     }
 
     public String getPhone() {
@@ -114,7 +114,7 @@ public class Restaurant {
 
     public void setPhone(String phone) {
         validatePhone(phone);
-        this.phone = phone;
+        this.phone = phone.trim();
     }
 
     public String getDescription() {
@@ -173,17 +173,27 @@ public class Restaurant {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Restaurant name cannot be empty");
         }
+        if (name.trim().length() < MIN_NAME_LENGTH || name.trim().length() > MAX_NAME_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Restaurant name must be between " + MIN_NAME_LENGTH + " and " + MAX_NAME_LENGTH + " characters");
+        }
     }
 
     private void validateAddress(String address) {
         if (address == null || address.trim().isEmpty()) {
             throw new IllegalArgumentException("Address cannot be empty");
         }
+        if (address.trim().length() > MAX_ADDRESS_LENGTH) {
+            throw new IllegalArgumentException("Address must not exceed " + MAX_ADDRESS_LENGTH + " characters");
+        }
     }
 
     private void validatePhone(String phone) {
         if (phone == null || phone.trim().isEmpty()) {
             throw new IllegalArgumentException("Phone number cannot be empty");
+        }
+        if (phone.trim().length() > MAX_PHONE_LENGTH) {
+            throw new IllegalArgumentException("Phone number must not exceed " + MAX_PHONE_LENGTH + " characters");
         }
     }
 
