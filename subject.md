@@ -4,7 +4,7 @@
 **Instructor:** Prof. Baptiste Dupuis  
 **DEADLINE:** Sunday 7 decdember 11:42 pm
 
-[INVITATION TO GITEE REPOSITORY] - Link available Monday 1 December
+[INVITATION TO GITEE REPOSITORY](https://gitee.com/professor_baptiste/java-final-project/invite_link?invite=6955991ca0cc86b6b524b9da4d402fd9848adc1e69448057e511b1509403e86e979e6d726f06c4678da87cab6e3c90fa) - Link available Monday 1 December
 
 ---
 
