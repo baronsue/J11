@@ -1,0 +1,440 @@
+### Restaurant Reservation API Tests
+### Use these tests with VS Code REST Client extension or IntelliJ HTTP Client
+### Total: 25+ test cases covering happy paths and error scenarios
+
+### ====================
+### RESTAURANT ENDPOINTS
+### ====================
+
+### 1. Get all restaurants
+GET http://localhost:8080/api/restaurants
+Accept: application/json
+
+###
+
+### 2. Get restaurant details (with tables)
+GET http://localhost:8080/api/restaurants/1
+Accept: application/json
+
+###
+
+### 3. Get restaurant tables
+GET http://localhost:8080/api/restaurants/1/tables
+Accept: application/json
+
+###
+
+### 4. Check restaurant availability (happy path)
+GET http://localhost:8080/api/restaurants/1/availability?date=2025-12-25&guests=4
+Accept: application/json
+
+###
+
+### 5. Check availability for 2 guests
+GET http://localhost:8080/api/restaurants/2/availability?date=2025-12-20&guests=2
+Accept: application/json
+
+###
+
+### 6. ERROR: Restaurant not found (404)
+GET http://localhost:8080/api/restaurants/999
+Accept: application/json
+
+###
+
+
+### ====================
+### CUSTOMER ENDPOINTS
+### ====================
+
+### 7. Get all customers
+GET http://localhost:8080/api/customers
+Accept: application/json
+
+###
+
+### 8. Get customer by ID
+GET http://localhost:8080/api/customers/1
+Accept: application/json
+
+###
+
+### 9. Register new customer (happy path)
+POST http://localhost:8080/api/customers
+Content-Type: application/json
+
+{
+    "name": "Alice Johnson",
+    "email": "alice.johnson@email.com",
+    "phone": "+1 555-0102"
+}
+
+###
+
+### 10. ERROR: Register customer with duplicate email (409 Conflict)
+POST http://localhost:8080/api/customers
+Content-Type: application/json
+
+{
+    "name": "John Smith Copy",
+    "email": "john.smith@email.com",
+    "phone": "+1 555-0999"
+}
+
+###
+
+### 11. ERROR: Register customer with invalid email (400)
+POST http://localhost:8080/api/customers
+Content-Type: application/json
+
+{
+    "name": "Bad Email User",
+    "email": "invalid-email",
+    "phone": "+1 555-0103"
+}
+
+###
+
+### 12. ERROR: Register customer with missing required fields (400)
+POST http://localhost:8080/api/customers
+Content-Type: application/json
+
+{
+    "name": ""
+}
+
+###
+
+### 13. Get customer reservations
+GET http://localhost:8080/api/customers/1/reservations
+Accept: application/json
+
+###
+
+
+### ====================
+### RESERVATION ENDPOINTS
+### ====================
+
+### 14. Create reservation (happy path)
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 1,
+    "customerId": 1,
+    "reservationDate": "2025-12-25",
+    "reservationTime": "19:00:00",
+    "numberOfGuests": 2
+}
+
+###
+
+### 15. Create reservation with specific table
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 1,
+    "tableId": 2,
+    "customerId": 2,
+    "reservationDate": "2025-12-26",
+    "reservationTime": "13:00:00",
+    "numberOfGuests": 3
+}
+
+###
+
+### 16. Get reservation details
+GET http://localhost:8080/api/reservations/1
+Accept: application/json
+
+###
+
+### 17. Confirm reservation (PENDING -> CONFIRMED)
+PUT http://localhost:8080/api/reservations/1/confirm
+Accept: application/json
+
+###
+
+### 18. Complete reservation (CONFIRMED -> COMPLETED)
+PUT http://localhost:8080/api/reservations/1/complete
+Accept: application/json
+
+###
+
+
+### ====================
+### ERROR SCENARIOS - DOUBLE BOOKING
+### ====================
+
+### 19. First create a reservation for double booking test
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 2,
+    "tableId": 5,
+    "customerId": 1,
+    "reservationDate": "2025-12-28",
+    "reservationTime": "18:00:00",
+    "numberOfGuests": 2
+}
+
+###
+
+### 20. ERROR: Double booking - same table same time (409 Conflict)
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 2,
+    "tableId": 5,
+    "customerId": 2,
+    "reservationDate": "2025-12-28",
+    "reservationTime": "18:00:00",
+    "numberOfGuests": 2
+}
+
+###
+
+### 21. ERROR: Booking in the past (400)
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 1,
+    "customerId": 1,
+    "reservationDate": "2020-01-01",
+    "reservationTime": "19:00:00",
+    "numberOfGuests": 2
+}
+
+###
+
+### 22. ERROR: Booking outside opening hours (400)
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 1,
+    "customerId": 1,
+    "reservationDate": "2025-12-30",
+    "reservationTime": "08:00:00",
+    "numberOfGuests": 2
+}
+
+###
+
+### 23. ERROR: Exceeding table capacity (400)
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 1,
+    "tableId": 1,
+    "customerId": 1,
+    "reservationDate": "2025-12-31",
+    "reservationTime": "19:00:00",
+    "numberOfGuests": 10
+}
+
+###
+
+### 24. ERROR: Customer not found (404)
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 1,
+    "customerId": 999,
+    "reservationDate": "2025-12-31",
+    "reservationTime": "19:00:00",
+    "numberOfGuests": 2
+}
+
+###
+
+### 25. ERROR: Reservation not found (404)
+GET http://localhost:8080/api/reservations/999
+Accept: application/json
+
+###
+
+### 26. ERROR: Invalid number of guests - zero (400)
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 1,
+    "customerId": 1,
+    "reservationDate": "2025-12-31",
+    "reservationTime": "19:00:00",
+    "numberOfGuests": 0
+}
+
+###
+
+
+### ====================
+### STATUS TRANSITION TESTS
+### ====================
+
+### 27. Create a new reservation for status tests
+POST http://localhost:8080/api/reservations
+Content-Type: application/json
+
+{
+    "restaurantId": 3,
+    "customerId": 3,
+    "reservationDate": "2025-12-27",
+    "reservationTime": "20:00:00",
+    "numberOfGuests": 4
+}
+
+###
+
+### 28. Confirm the reservation
+PUT http://localhost:8080/api/reservations/2/confirm
+Accept: application/json
+
+###
+
+### 29. Complete the reservation
+PUT http://localhost:8080/api/reservations/2/complete
+Accept: application/json
+
+###
+
+### 30. ERROR: Try to cancel completed reservation (409)
+PUT http://localhost:8080/api/reservations/2/cancel
+Accept: application/json
+
+###
+
+### 31. ERROR: Try to confirm already completed reservation (409)
+PUT http://localhost:8080/api/reservations/2/confirm
+Accept: application/json
+
+###
+
+### 32. Cancel a pending reservation (happy path)
+PUT http://localhost:8080/api/reservations/3/cancel
+Accept: application/json
+
+###
+
+
+### ====================
+### REVIEW SYSTEM (BONUS)
+### ====================
+
+### 33. ERROR: Create review for non-completed reservation (400)
+POST http://localhost:8080/api/reviews
+Content-Type: application/json
+
+{
+    "reservationId": 3,
+    "rating": 5,
+    "comment": "This should fail - reservation not completed"
+}
+
+###
+
+### 34. Create review for completed reservation (happy path)
+# Note: First ensure reservation 2 is completed (use step 29)
+POST http://localhost:8080/api/reviews
+Content-Type: application/json
+
+{
+    "reservationId": 2,
+    "rating": 5,
+    "comment": "Excellent food and service! The pasta was amazing and the staff was very friendly. Highly recommended!"
+}
+
+###
+
+### 35. ERROR: Duplicate review for same reservation (409)
+POST http://localhost:8080/api/reviews
+Content-Type: application/json
+
+{
+    "reservationId": 2,
+    "rating": 4,
+    "comment": "Trying to review again - should fail"
+}
+
+###
+
+### 36. Get review by ID
+GET http://localhost:8080/api/reviews/1
+Accept: application/json
+
+###
+
+### 37. Get restaurant ratings and reviews
+GET http://localhost:8080/api/reviews/restaurant/3
+Accept: application/json
+
+###
+
+### 38. Get customer reviews
+GET http://localhost:8080/api/reviews/customer/3
+Accept: application/json
+
+###
+
+### 39. ERROR: Review with invalid rating (400)
+POST http://localhost:8080/api/reviews
+Content-Type: application/json
+
+{
+    "reservationId": 1,
+    "rating": 10,
+    "comment": "Invalid rating - should fail"
+}
+
+###
+
+
+### ====================
+### RESTAURANT RESERVATIONS
+### ====================
+
+### 40. Get all reservations for restaurant 1
+GET http://localhost:8080/api/restaurants/1/reservations
+Accept: application/json
+
+###
+
+### 41. Get all reservations for restaurant 2
+GET http://localhost:8080/api/restaurants/2/reservations
+Accept: application/json
+
+###
+
+
+### ====================
+### AVAILABILITY CHECK TESTS
+### ====================
+
+### 42. Check availability after making reservations
+GET http://localhost:8080/api/restaurants/1/availability?date=2025-12-25&guests=2
+Accept: application/json
+
+###
+
+### 43. Check availability for large party
+GET http://localhost:8080/api/restaurants/2/availability?date=2025-12-25&guests=8
+Accept: application/json
+
+###
+
+
+### ====================
+### SWAGGER UI
+### ====================
+### Access Swagger UI at: http://localhost:8080/swagger-ui.html
+### Access OpenAPI JSON at: http://localhost:8080/v3/api-docs
+
+###
