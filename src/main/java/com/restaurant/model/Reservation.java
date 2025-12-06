@@ -25,7 +25,7 @@ import java.time.LocalTime;
 @Table(name = "reservations")
 public class Reservation {
 
-    private static final int DEFAULT_DURATION_HOURS = 2;
+    public static final int RESERVATION_DURATION_HOURS = 2;
     private static final int MINIMUM_GUESTS = 1;
 
     @Id
@@ -146,7 +146,7 @@ public class Reservation {
     }
 
     public LocalTime getEndTime() {
-        return reservationTime.plusHours(DEFAULT_DURATION_HOURS);
+        return reservationTime.plusHours(RESERVATION_DURATION_HOURS);
     }
 
     public LocalDateTime getReservationDateTime() {

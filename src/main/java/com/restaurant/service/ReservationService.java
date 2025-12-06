@@ -27,15 +27,13 @@ import java.util.List;
 @Transactional
 public class ReservationService {
 
-    private static final int RESERVATION_DURATION_HOURS = 2;
-
     private final ReservationRepository reservationRepository;
     private final RestaurantService restaurantService;
     private final CustomerService customerService;
 
     public ReservationService(ReservationRepository reservationRepository,
-                              RestaurantService restaurantService,
-                              CustomerService customerService) {
+            RestaurantService restaurantService,
+            CustomerService customerService) {
         this.reservationRepository = reservationRepository;
         this.restaurantService = restaurantService;
         this.customerService = customerService;
@@ -131,14 +129,18 @@ public class ReservationService {
 
     private RestaurantTable resolveTable(CreateReservationRequest request, Restaurant restaurant) {
         if (request.getTableId() != null) {
-            return restaurantService.findTableById(request.getTableId());
+            RestaurantTable table = restaurantService.findTableById(request.getTableId());
+            if (!table.getRestaurant().getId().equals(restaurant.getId())) {
+                throw new ValidationException("Table does not belong to the specified restaurant");
+            }
+            return table;
         }
         return findSuitableTable(restaurant, request.getReservationDate(),
                 request.getReservationTime(), request.getNumberOfGuests());
     }
 
     private RestaurantTable findSuitableTable(Restaurant restaurant, LocalDate date,
-                                              LocalTime time, Integer numberOfGuests) {
+            LocalTime time, Integer numberOfGuests) {
         return restaurant.getTables().stream()
                 .filter(t -> t.getCapacity() >= numberOfGuests)
                 .filter(t -> isTableAvailable(t.getId(), date, time))
@@ -155,13 +157,13 @@ public class ReservationService {
     }
 
     private boolean isTimeOverlapping(LocalTime newTime, LocalTime existingTime) {
-        LocalTime newEndTime = newTime.plusHours(RESERVATION_DURATION_HOURS);
-        LocalTime existingEndTime = existingTime.plusHours(RESERVATION_DURATION_HOURS);
+        LocalTime newEndTime = newTime.plusHours(Reservation.RESERVATION_DURATION_HOURS);
+        LocalTime existingEndTime = existingTime.plusHours(Reservation.RESERVATION_DURATION_HOURS);
         return newTime.isBefore(existingEndTime) && newEndTime.isAfter(existingTime);
     }
 
     private void validateReservationRequest(CreateReservationRequest request,
-                                            Restaurant restaurant, RestaurantTable table) {
+            Restaurant restaurant, RestaurantTable table) {
         validateNotInPast(request.getReservationDate(), request.getReservationTime());
         validateWithinOpeningHours(request.getReservationTime(), restaurant);
         validateTableCapacity(request.getNumberOfGuests(), table);
@@ -176,7 +178,7 @@ public class ReservationService {
     }
 
     private void validateWithinOpeningHours(LocalTime time, Restaurant restaurant) {
-        LocalTime endTime = time.plusHours(RESERVATION_DURATION_HOURS);
+        LocalTime endTime = time.plusHours(Reservation.RESERVATION_DURATION_HOURS);
         if (time.isBefore(restaurant.getOpeningTime()) || endTime.isAfter(restaurant.getClosingTime())) {
             throw new ValidationException(String.format(
                     "Reservation must be within opening hours (%s - %s)",
@@ -221,7 +223,7 @@ public class ReservationService {
     }
 
     private Reservation buildReservation(CreateReservationRequest request,
-                                         Customer customer, RestaurantTable table) {
+            Customer customer, RestaurantTable table) {
         Reservation reservation = new Reservation();
         reservation.setReservationDate(request.getReservationDate());
         reservation.setReservationTime(request.getReservationTime());
@@ -232,4 +234,3 @@ public class ReservationService {
         return reservation;
     }
 }
-

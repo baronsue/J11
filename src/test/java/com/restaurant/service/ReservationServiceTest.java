@@ -259,8 +259,7 @@ class ReservationServiceTest {
                 "123 Test Street",
                 "+1 555-0000",
                 LocalTime.of(10, 0),
-                LocalTime.of(22, 0)
-        );
+                LocalTime.of(22, 0));
         restaurant.setId(1L);
         return restaurant;
     }

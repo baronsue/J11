@@ -54,8 +54,7 @@ class RestaurantServiceTest {
                 "123 Test Street",
                 "+1 555-0000",
                 LocalTime.of(10, 0),
-                LocalTime.of(22, 0)
-        );
+                LocalTime.of(22, 0));
         testRestaurant.setId(1L);
         testRestaurant.setDescription("A test restaurant");
         testRestaurant.setTables(new ArrayList<>());
@@ -207,4 +206,3 @@ class RestaurantServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> restaurantService.findTableById(999L));
     }
 }
-

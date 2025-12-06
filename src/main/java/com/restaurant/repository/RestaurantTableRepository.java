@@ -28,7 +28,8 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
     Optional<RestaurantTable> findByRestaurantIdAndTableNumber(Long restaurantId, String tableNumber);
 
     /**
-     * Find tables in restaurant with capacity greater than or equal to required guests.
+     * Find tables in restaurant with capacity greater than or equal to required
+     * guests.
      */
     List<RestaurantTable> findByRestaurantIdAndCapacityGreaterThanEqual(Long restaurantId, Integer capacity);
 
@@ -36,25 +37,23 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
      * Find available tables for specific date and time (excluding booked tables).
      */
     @Query("""
-        SELECT t FROM RestaurantTable t
-        WHERE t.restaurant.id = :restaurantId
-        AND t.capacity >= :numberOfGuests
-        AND t.id NOT IN (
-            SELECT r.table.id FROM Reservation r
-            WHERE r.table.restaurant.id = :restaurantId
-            AND r.reservationDate = :date
-            AND r.status NOT IN ('CANCELLED')
-            AND (
-                (r.reservationTime <= :time AND :time < FUNCTION('ADDTIME', r.reservationTime, '02:00:00'))
-                OR (r.reservationTime < FUNCTION('ADDTIME', :time, '02:00:00') AND :time <= r.reservationTime)
+            SELECT t FROM RestaurantTable t
+            WHERE t.restaurant.id = :restaurantId
+            AND t.capacity >= :numberOfGuests
+            AND t.id NOT IN (
+                SELECT r.table.id FROM Reservation r
+                WHERE r.table.restaurant.id = :restaurantId
+                AND r.reservationDate = :date
+                AND r.status NOT IN ('CANCELLED')
+                AND (
+                    (r.reservationTime <= :time AND :time < FUNCTION('DATEADD', 'HOUR', 2, r.reservationTime))
+                    OR (r.reservationTime < FUNCTION('DATEADD', 'HOUR', 2, :time) AND :time <= r.reservationTime)
+                )
             )
-        )
-        """)
+            """)
     List<RestaurantTable> findAvailableTables(
             @Param("restaurantId") Long restaurantId,
             @Param("date") LocalDate date,
             @Param("time") LocalTime time,
-            @Param("numberOfGuests") Integer numberOfGuests
-    );
+            @Param("numberOfGuests") Integer numberOfGuests);
 }
-
