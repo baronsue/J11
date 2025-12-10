@@ -1,5 +1,6 @@
 package com.restaurant.dto.request;
 
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,8 +14,10 @@ public class AvailabilityRequest {
     private static final int MINIMUM_GUESTS = 1;
 
     @NotNull(message = "Date is required")
+    @FutureOrPresent(message = "Date must be today or in the future")
     private LocalDate date;
 
+    @NotNull(message = "Number of guests is required")
     @Min(value = MINIMUM_GUESTS, message = "Number of guests must be at least 1")
     private Integer numberOfGuests;
 

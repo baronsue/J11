@@ -24,7 +24,8 @@ A comprehensive Restaurant Reservation System API built with Spring Boot. This s
 - **Java 21**
 - **Spring Boot 3.2.0**
 - **Spring Data JPA**
-- **H2 Database** (in-memory)
+- **PostgreSQL** + **Flyway** migrations
+- **Spring Security** + **JWT**
 - **Spring Validation**
 - **SpringDoc OpenAPI** (Swagger UI)
 - **JUnit 5 + Mockito** (Testing)
@@ -36,6 +37,7 @@ A comprehensive Restaurant Reservation System API built with Spring Boot. This s
 
 - Java 21 or higher
 - Maven 3.6+
+- PostgreSQL 14+ (or Docker with Postgres)
 
 ### Steps
 
@@ -45,27 +47,34 @@ A comprehensive Restaurant Reservation System API built with Spring Boot. This s
    cd java-final-project
    ```
 
-2. Build the project:
+2. Prepare environment variables (defaults in parentheses):
    ```bash
-   mvn clean install
+   export DB_HOST=localhost
+   export DB_PORT=5432
+   export DB_NAME=restaurant
+   export DB_USER=restaurant
+   export DB_PASSWORD=restaurant
+   export JWT_SECRET=change-this-secret-key-please-0123456789
+   export JWT_EXPIRATION_MS=86400000
+   ```
+   If using Docker:
+   ```bash
+   docker run --name restaurant-db -e POSTGRES_DB=restaurant \
+     -e POSTGRES_USER=restaurant -e POSTGRES_PASSWORD=restaurant \
+     -p 5432:5432 -d postgres:14
    ```
 
-3. Run the application:
+3. Build and run (Flyway migration runs automatically):
    ```bash
+   mvn clean install
    mvn spring-boot:run
    ```
 
 4. Access the API at: `http://localhost:8080`
 
-5. **Swagger UI Documentation:** `http://localhost:8080/swagger-ui.html`
+5. **Swagger UI Documentation:** `http://localhost:8080/swagger-ui/index.html`
 
 6. **OpenAPI JSON:** `http://localhost:8080/v3/api-docs`
-
-7. **H2 Console** (for database inspection):
-   - URL: `http://localhost:8080/h2-console`
-   - JDBC URL: `jdbc:h2:mem:restaurantdb`
-   - Username: `sa`
-   - Password: (empty)
 
 ## Running Tests
 
@@ -117,6 +126,18 @@ mvn test jacoco:report
 | GET | `/api/reviews/restaurant/{restaurantId}` | Get all reviews for a restaurant |
 | GET | `/api/reviews/restaurant/{restaurantId}/rating` | Get restaurant average rating |
 | GET | `/api/reviews/customer/{customerId}` | Get customer's reviews |
+
+### Auth
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register user (SUPER_ADMIN / MANAGER / CUSTOMER) |
+| POST | `/api/auth/login` | Login and obtain JWT |
+
+**RBAC:**  
+- SUPER_ADMIN: full access  
+- MANAGER: 只能操作分配的餐厅数据  
+- CUSTOMER: 以顾客身份访问公开与预订相关接口
 
 ## Request/Response Examples
 
@@ -254,9 +275,11 @@ POST /api/reviews
 src/main/java/com/restaurant/
 ├── ReservationApiApplication.java
 ├── config/
-│   ├── DataInitializer.java          # Sample data initialization
-│   └── OpenApiConfig.java            # Swagger configuration
+│   ├── DataInitializer.java          # Sample data initialization (restaurants/customers/users/roles)
+│   ├── OpenApiConfig.java            # Swagger configuration
+│   └── SecurityConfig.java           # Spring Security + JWT
 ├── controller/
+│   ├── AuthController.java
 │   ├── CustomerController.java
 │   ├── ReservationController.java
 │   ├── RestaurantController.java
@@ -266,11 +289,14 @@ src/main/java/com/restaurant/
 │   │   ├── AvailabilityRequest.java
 │   │   ├── CreateCustomerRequest.java
 │   │   ├── CreateReservationRequest.java
-│   │   └── CreateReviewRequest.java  # Bonus feature
+│   │   ├── CreateReviewRequest.java  # Bonus feature
+│   │   ├── LoginRequest.java
+│   │   └── RegisterRequest.java
 │   └── response/
 │       ├── AvailabilityResponse.java
 │       ├── CustomerResponse.java
 │       ├── ErrorResponse.java
+│       ├── AuthResponse.java
 │       ├── ReservationResponse.java
 │       ├── RestaurantResponse.java
 │       ├── RestaurantRatingResponse.java  # Bonus feature
@@ -289,18 +315,30 @@ src/main/java/com/restaurant/
 │   ├── ReservationStatus.java
 │   ├── Restaurant.java
 │   ├── RestaurantTable.java
-│   └── Review.java                   # Bonus feature
+│   ├── Review.java                   # Bonus feature
+│   ├── Role.java
+│   ├── RoleName.java
+│   └── UserAccount.java
 ├── repository/
 │   ├── CustomerRepository.java
 │   ├── ReservationRepository.java
 │   ├── RestaurantRepository.java
 │   ├── RestaurantTableRepository.java
-│   └── ReviewRepository.java         # Bonus feature
+│   ├── ReviewRepository.java         # Bonus feature
+│   ├── RoleRepository.java
+│   └── UserAccountRepository.java
+├── security/
+│   ├── AuthorizationService.java
+│   ├── CustomUserDetailsService.java
+│   ├── JwtAuthenticationFilter.java
+│   ├── JwtTokenProvider.java
+│   └── SecurityUser.java
 └── service/
     ├── CustomerService.java
     ├── ReservationService.java
     ├── RestaurantService.java
-    └── ReviewService.java            # Bonus feature
+    ├── ReviewService.java            # Bonus feature
+    └── AuthService.java
 
 src/test/java/com/restaurant/
 └── service/
@@ -349,15 +387,19 @@ The test file includes **40+ test cases**:
 
 The application initializes with sample data on startup:
 
-### Restaurants
-1. **Le Petit Bistro** (Paris) - Opens 11:00-23:00, Tables: 2, 4, 6 capacity
-2. **Dragon Palace** (Shanghai) - Opens 10:00-22:00, Tables: 2, 4, 8, 10 capacity
-3. **Bella Italia** (Milan) - Opens 12:00-23:00, Tables: 2, 2, 4, 4, 6 capacity
+### Restaurants (TanHuo BBQ Theme)
+1. **TanHuo BBQ Central** (Pudong) - 10:30-23:00, Tables: 2,2,4,4,6,8
+2. **TanHuo BBQ Riverside** (Huangpu) - 11:00-22:30, Tables: 2,4,4,6,6,10
+3. **TanHuo BBQ Prep Lab** (Jing'an) - 09:00-21:00, Tables: 4,4,8,8,12
 
 ### Customers
-1. John Smith (john.smith@email.com)
-2. Marie Dupont (marie.dupont@email.com)
-3. Zhang Wei (zhang.wei@email.com)
+1. Siyu Chen (siyu.chen@email.com)
+2. Liam Walker (liam.walker@email.com)
+3. Sakura Tanaka (sakura.tanaka@email.com)
+
+### Users
+- SUPER_ADMIN: `admin` / `Admin@123`
+- MANAGER (Central store): `manager` / `Manager@123`
 
 ## Clean Code Principles Applied
 

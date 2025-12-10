@@ -3,6 +3,7 @@ package com.restaurant.dto.request;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -15,6 +16,7 @@ public class CreateReviewRequest {
     private static final int MAX_COMMENT_LENGTH = 1000;
 
     @NotNull(message = "Reservation ID is required")
+    @Positive(message = "Reservation ID must be positive")
     private Long reservationId;
 
     @NotNull(message = "Rating is required")

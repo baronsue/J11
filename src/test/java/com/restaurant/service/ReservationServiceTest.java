@@ -12,6 +12,7 @@ import com.restaurant.model.ReservationStatus;
 import com.restaurant.model.Restaurant;
 import com.restaurant.model.RestaurantTable;
 import com.restaurant.repository.ReservationRepository;
+import com.restaurant.security.AuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class ReservationServiceTest {
 
     @Mock
     private CustomerService customerService;
+
+    @Mock
+    private AuthorizationService authorizationService;
 
     @InjectMocks
     private ReservationService reservationService;
@@ -151,8 +155,6 @@ class ReservationServiceTest {
         when(customerService.findCustomerById(1L)).thenReturn(testCustomer);
         when(restaurantService.findRestaurantById(1L)).thenReturn(testRestaurant);
         when(restaurantService.findTableById(1L)).thenReturn(testTable);
-        when(reservationRepository.findByTableIdAndReservationDate(any(), any()))
-                .thenReturn(new ArrayList<>());
 
         // When & Then
         assertThrows(ValidationException.class, () -> reservationService.createReservation(request));
@@ -201,6 +203,18 @@ class ReservationServiceTest {
         // Then
         assertEquals(ReservationStatus.CONFIRMED, response.getStatus());
         verify(reservationRepository, times(1)).save(testReservation);
+    }
+
+    @Test
+    @DisplayName("Should reject confirmation when status is not PENDING")
+    void shouldRejectConfirmationWhenNotPending() {
+        // Given
+        testReservation.setStatus(ReservationStatus.CONFIRMED);
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(testReservation));
+
+        // When & Then
+        assertThrows(InvalidOperationException.class, () -> reservationService.confirmReservation(1L));
+        verify(reservationRepository, never()).save(any(Reservation.class));
     }
 
     @Test
@@ -281,5 +295,34 @@ class ReservationServiceTest {
         reservation.setCustomer(customer);
         reservation.setTable(table);
         return reservation;
+    }
+
+    @Test
+    @DisplayName("Should fail when table does not belong to restaurant")
+    void shouldFailWhenTableNotInRestaurant() {
+        // Given
+        CreateReservationRequest request = new CreateReservationRequest();
+        request.setRestaurantId(99L);
+        request.setTableId(1L);
+        request.setCustomerId(1L);
+        request.setReservationDate(LocalDate.now().plusDays(2));
+        request.setReservationTime(LocalTime.of(18, 0));
+        request.setNumberOfGuests(2);
+
+        Restaurant otherRestaurant = new Restaurant(
+                "Other BBQ",
+                "Different address",
+                "+1 555-2222",
+                LocalTime.of(10, 0),
+                LocalTime.of(22, 0));
+        otherRestaurant.setId(99L);
+
+        when(customerService.findCustomerById(1L)).thenReturn(testCustomer);
+        when(restaurantService.findRestaurantById(99L)).thenReturn(otherRestaurant);
+        when(restaurantService.findTableById(1L)).thenReturn(testTable);
+
+        // When & Then
+        assertThrows(ValidationException.class, () -> reservationService.createReservation(request));
+        verify(reservationRepository, never()).save(any(Reservation.class));
     }
 }

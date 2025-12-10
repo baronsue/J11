@@ -33,27 +33,4 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
      */
     List<RestaurantTable> findByRestaurantIdAndCapacityGreaterThanEqual(Long restaurantId, Integer capacity);
 
-    /**
-     * Find available tables for specific date and time (excluding booked tables).
-     */
-    @Query("""
-            SELECT t FROM RestaurantTable t
-            WHERE t.restaurant.id = :restaurantId
-            AND t.capacity >= :numberOfGuests
-            AND t.id NOT IN (
-                SELECT r.table.id FROM Reservation r
-                WHERE r.table.restaurant.id = :restaurantId
-                AND r.reservationDate = :date
-                AND r.status NOT IN ('CANCELLED')
-                AND (
-                    (r.reservationTime <= :time AND :time < FUNCTION('DATEADD', 'HOUR', 2, r.reservationTime))
-                    OR (r.reservationTime < FUNCTION('DATEADD', 'HOUR', 2, :time) AND :time <= r.reservationTime)
-                )
-            )
-            """)
-    List<RestaurantTable> findAvailableTables(
-            @Param("restaurantId") Long restaurantId,
-            @Param("date") LocalDate date,
-            @Param("time") LocalTime time,
-            @Param("numberOfGuests") Integer numberOfGuests);
 }

@@ -1,7 +1,9 @@
 package com.restaurant.dto.request;
 
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -14,14 +16,18 @@ public class CreateReservationRequest {
     private static final int MINIMUM_GUESTS = 1;
 
     @NotNull(message = "Restaurant ID is required")
+    @Positive(message = "Restaurant ID must be positive")
     private Long restaurantId;
 
+    @Positive(message = "Table ID must be positive")
     private Long tableId;
 
     @NotNull(message = "Customer ID is required")
+    @Positive(message = "Customer ID must be positive")
     private Long customerId;
 
     @NotNull(message = "Reservation date is required")
+    @FutureOrPresent(message = "Reservation date cannot be in the past")
     private LocalDate reservationDate;
 
     @NotNull(message = "Reservation time is required")

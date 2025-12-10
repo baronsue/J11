@@ -11,8 +11,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +32,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/restaurants")
 @Tag(name = "Restaurants", description = "Restaurant management endpoints")
+@Validated
 public class RestaurantController {
 
     private final RestaurantService restaurantService;
@@ -83,8 +88,8 @@ public class RestaurantController {
     @Operation(summary = "Check availability", description = "Check restaurant availability for a specific date")
     public ResponseEntity<AvailabilityResponse> checkAvailability(
             @Parameter(description = "Restaurant ID") @PathVariable Long id,
-            @Parameter(description = "Date to check (YYYY-MM-DD)") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @Parameter(description = "Number of guests") @RequestParam(required = false, defaultValue = "1") Integer guests) {
+            @Parameter(description = "Date to check (YYYY-MM-DD)") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @NotNull @FutureOrPresent LocalDate date,
+            @Parameter(description = "Number of guests") @RequestParam(required = false, defaultValue = "1") @Min(1) Integer guests) {
         AvailabilityResponse response = restaurantService.checkAvailability(id, date, guests);
         return ResponseEntity.ok(response);
     }
@@ -99,4 +104,3 @@ public class RestaurantController {
         return ResponseEntity.ok(reservations);
     }
 }
-

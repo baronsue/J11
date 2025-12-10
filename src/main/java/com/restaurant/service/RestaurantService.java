@@ -5,13 +5,14 @@ import com.restaurant.dto.response.RestaurantResponse;
 import com.restaurant.dto.response.TableResponse;
 import com.restaurant.exception.ResourceNotFoundException;
 import com.restaurant.exception.ValidationException;
-import com.restaurant.model.Restaurant;
-import com.restaurant.model.RestaurantTable;
 import com.restaurant.model.Reservation;
 import com.restaurant.model.ReservationStatus;
+import com.restaurant.model.Restaurant;
+import com.restaurant.model.RestaurantTable;
 import com.restaurant.repository.ReservationRepository;
 import com.restaurant.repository.RestaurantRepository;
 import com.restaurant.repository.RestaurantTableRepository;
+import com.restaurant.security.AuthorizationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,13 +34,16 @@ public class RestaurantService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantTableRepository tableRepository;
     private final ReservationRepository reservationRepository;
+    private final AuthorizationService authorizationService;
 
     public RestaurantService(RestaurantRepository restaurantRepository,
             RestaurantTableRepository tableRepository,
-            ReservationRepository reservationRepository) {
+            ReservationRepository reservationRepository,
+            AuthorizationService authorizationService) {
         this.restaurantRepository = restaurantRepository;
         this.tableRepository = tableRepository;
         this.reservationRepository = reservationRepository;
+        this.authorizationService = authorizationService;
     }
 
     /**
@@ -58,6 +62,7 @@ public class RestaurantService {
      */
     @Transactional(readOnly = true)
     public RestaurantResponse getRestaurantById(Long restaurantId) {
+        authorizationService.assertRestaurantAccess(restaurantId);
         Restaurant restaurant = findRestaurantById(restaurantId);
         return RestaurantResponse.fromEntity(restaurant);
     }
@@ -68,6 +73,7 @@ public class RestaurantService {
     @Transactional(readOnly = true)
     public List<TableResponse> getTablesByRestaurantId(Long restaurantId) {
         validateRestaurantExists(restaurantId);
+        authorizationService.assertRestaurantAccess(restaurantId);
         return tableRepository.findByRestaurantId(restaurantId)
                 .stream()
                 .map(TableResponse::fromEntity)
@@ -80,6 +86,7 @@ public class RestaurantService {
     @Transactional(readOnly = true)
     public AvailabilityResponse checkAvailability(Long restaurantId, LocalDate date, Integer numberOfGuests) {
         Restaurant restaurant = findRestaurantById(restaurantId);
+        authorizationService.assertRestaurantAccess(restaurantId);
         validateFutureDate(date);
 
         Integer guestCount = (numberOfGuests != null && numberOfGuests > 0) ? numberOfGuests : 1;

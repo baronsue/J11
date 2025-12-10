@@ -1,15 +1,14 @@
 package com.restaurant.service;
 
-import com.restaurant.dto.response.AvailabilityResponse;
 import com.restaurant.dto.response.RestaurantResponse;
 import com.restaurant.dto.response.TableResponse;
 import com.restaurant.exception.ResourceNotFoundException;
-import com.restaurant.exception.ValidationException;
 import com.restaurant.model.Restaurant;
 import com.restaurant.model.RestaurantTable;
 import com.restaurant.repository.ReservationRepository;
 import com.restaurant.repository.RestaurantRepository;
 import com.restaurant.repository.RestaurantTableRepository;
+import com.restaurant.security.AuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,9 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +39,9 @@ class RestaurantServiceTest {
     @Mock
     private ReservationRepository reservationRepository;
 
+    @Mock
+    private AuthorizationService authorizationService;
+
     @InjectMocks
     private RestaurantService restaurantService;
 
@@ -57,18 +57,14 @@ class RestaurantServiceTest {
                 LocalTime.of(22, 0));
         testRestaurant.setId(1L);
         testRestaurant.setDescription("A test restaurant");
-        testRestaurant.setTables(new ArrayList<>());
 
         RestaurantTable table1 = new RestaurantTable("T01", 2);
         table1.setId(1L);
-        table1.setRestaurant(testRestaurant);
 
         RestaurantTable table2 = new RestaurantTable("T02", 4);
         table2.setId(2L);
-        table2.setRestaurant(testRestaurant);
-
-        testRestaurant.getTables().add(table1);
-        testRestaurant.getTables().add(table2);
+        testRestaurant.addTable(table1);
+        testRestaurant.addTable(table2);
     }
 
     @Test
@@ -126,58 +122,6 @@ class RestaurantServiceTest {
         // Then
         assertNotNull(responses);
         assertEquals(2, responses.size());
-    }
-
-    @Test
-    @DisplayName("Should check availability successfully for future date")
-    void shouldCheckAvailabilitySuccessfully() {
-        // Given
-        LocalDate futureDate = LocalDate.now().plusDays(7);
-        when(restaurantRepository.findById(1L)).thenReturn(Optional.of(testRestaurant));
-        when(reservationRepository.findByRestaurantIdAndDate(1L, futureDate)).thenReturn(new ArrayList<>());
-
-        // When
-        AvailabilityResponse response = restaurantService.checkAvailability(1L, futureDate, 2);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(1L, response.getRestaurantId());
-        assertEquals("Test Restaurant", response.getRestaurantName());
-        assertEquals(futureDate, response.getDate());
-        assertNotNull(response.getAvailableTimeSlots());
-        assertFalse(response.getAvailableTimeSlots().isEmpty());
-    }
-
-    @Test
-    @DisplayName("Should throw ValidationException when checking availability for past date")
-    void shouldThrowValidationExceptionForPastDate() {
-        // Given
-        LocalDate pastDate = LocalDate.now().minusDays(1);
-        when(restaurantRepository.findById(1L)).thenReturn(Optional.of(testRestaurant));
-
-        // When & Then
-        assertThrows(ValidationException.class, () -> restaurantService.checkAvailability(1L, pastDate, 2));
-    }
-
-    @Test
-    @DisplayName("Should filter tables by guest capacity when checking availability")
-    void shouldFilterTablesByGuestCapacity() {
-        // Given
-        LocalDate futureDate = LocalDate.now().plusDays(7);
-        when(restaurantRepository.findById(1L)).thenReturn(Optional.of(testRestaurant));
-        when(reservationRepository.findByRestaurantIdAndDate(1L, futureDate)).thenReturn(new ArrayList<>());
-
-        // When
-        AvailabilityResponse response = restaurantService.checkAvailability(1L, futureDate, 4);
-
-        // Then
-        assertNotNull(response);
-        // Only T02 with capacity 4 should be available for 4 guests
-        response.getAvailableTimeSlots().forEach(slot -> {
-            slot.getAvailableTables().forEach(table -> {
-                assertTrue(table.getCapacity() >= 4);
-            });
-        });
     }
 
     @Test

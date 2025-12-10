@@ -3,16 +3,22 @@ package com.restaurant.config;
 import com.restaurant.model.Customer;
 import com.restaurant.model.Restaurant;
 import com.restaurant.model.RestaurantTable;
+import com.restaurant.model.Role;
+import com.restaurant.model.RoleName;
+import com.restaurant.model.UserAccount;
 import com.restaurant.repository.CustomerRepository;
 import com.restaurant.repository.RestaurantRepository;
+import com.restaurant.repository.RoleRepository;
+import com.restaurant.repository.UserAccountRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
+import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalTime;
 
 /**
- * Data initializer configuration class, loads sample data on application startup.
+ * Data initializer configuration class, loads sample data on application
+ * startup.
  */
 @Configuration
 @SuppressWarnings("null")
@@ -20,50 +26,54 @@ public class DataInitializer {
 
     @Bean
     CommandLineRunner initDatabase(RestaurantRepository restaurantRepository,
-                                   CustomerRepository customerRepository) {
+            CustomerRepository customerRepository,
+            RoleRepository roleRepository,
+            UserAccountRepository userAccountRepository,
+            PasswordEncoder passwordEncoder) {
         return args -> {
+            if (restaurantRepository.count() > 0 || customerRepository.count() > 0) {
+                return;
+            }
             initializeRestaurants(restaurantRepository);
             initializeCustomers(customerRepository);
+            initializeSecurity(roleRepository, userAccountRepository, passwordEncoder, restaurantRepository);
         };
     }
 
     private void initializeRestaurants(RestaurantRepository restaurantRepository) {
         Restaurant restaurant1 = createRestaurant(
-                "Le Petit Bistro",
-                "123 Main Street, Paris",
-                "+33 1 23 45 67 89",
-                "A cozy French bistro serving authentic cuisine",
-                LocalTime.of(11, 0),
-                LocalTime.of(23, 0)
-        );
-        addTablesToRestaurant(restaurant1, 2, 4, 6);
+                "TanHuo BBQ Central",
+                "No.88 Charcoal Rd, Pudong, Shanghai",
+                "+86 21 6666 8801",
+                "Signature wagyu and Texas-style smokehouse with open grill",
+                LocalTime.of(10, 30),
+                LocalTime.of(23, 0));
+        addTablesToRestaurant(restaurant1, 2, 2, 4, 4, 6, 8);
         restaurantRepository.save(restaurant1);
 
         Restaurant restaurant2 = createRestaurant(
-                "Dragon Palace",
-                "456 Dragon Road, Shanghai",
-                "+86 21 8765 4321",
-                "Premium Chinese restaurant with traditional flavors",
-                LocalTime.of(10, 0),
-                LocalTime.of(22, 0)
-        );
-        addTablesToRestaurant(restaurant2, 2, 4, 8, 10);
+                "TanHuo BBQ Riverside",
+                "168 Riverside Ave, Huangpu, Shanghai",
+                "+86 21 6666 8802",
+                "River-view seats, Korean marinades and charcoal seafood",
+                LocalTime.of(11, 0),
+                LocalTime.of(22, 30));
+        addTablesToRestaurant(restaurant2, 2, 4, 4, 6, 6, 10);
         restaurantRepository.save(restaurant2);
 
         Restaurant restaurant3 = createRestaurant(
-                "Bella Italia",
-                "789 Roma Avenue, Milan",
-                "+39 02 1234 5678",
-                "Authentic Italian restaurant with homemade pasta",
-                LocalTime.of(12, 0),
-                LocalTime.of(23, 0)
-        );
-        addTablesToRestaurant(restaurant3, 2, 2, 4, 4, 6);
+                "TanHuo BBQ Prep Lab",
+                "Building D, Old Factory Lane, Jing'an, Shanghai",
+                "+86 21 6666 8803",
+                "Delivery and catering lab with large platters and corporate sets",
+                LocalTime.of(9, 0),
+                LocalTime.of(21, 0));
+        addTablesToRestaurant(restaurant3, 4, 4, 8, 8, 12);
         restaurantRepository.save(restaurant3);
     }
 
     private Restaurant createRestaurant(String name, String address, String phone,
-                                        String description, LocalTime openingTime, LocalTime closingTime) {
+            String description, LocalTime openingTime, LocalTime closingTime) {
         Restaurant restaurant = new Restaurant(name, address, phone, openingTime, closingTime);
         restaurant.setDescription(description);
         return restaurant;
@@ -78,9 +88,40 @@ public class DataInitializer {
     }
 
     private void initializeCustomers(CustomerRepository customerRepository) {
-        customerRepository.save(new Customer("John Smith", "john.smith@email.com", "+1 555-0101"));
-        customerRepository.save(new Customer("Marie Dupont", "marie.dupont@email.com", "+33 6 12 34 56 78"));
-        customerRepository.save(new Customer("Zhang Wei", "zhang.wei@email.com", "+86 138 0000 0001"));
+        customerRepository.save(new Customer("Siyu Chen", "siyu.chen@email.com", "+86 138 0000 8801"));
+        customerRepository.save(new Customer("Liam Walker", "liam.walker@email.com", "+1 415 555 2011"));
+        customerRepository.save(new Customer("Sakura Tanaka", "sakura.tanaka@email.com", "+81 90 1111 2233"));
+    }
+
+    private void initializeSecurity(RoleRepository roleRepository,
+            UserAccountRepository userAccountRepository,
+            PasswordEncoder passwordEncoder,
+            RestaurantRepository restaurantRepository) {
+        for (RoleName roleName : RoleName.values()) {
+            if (!roleRepository.existsByName(roleName)) {
+                roleRepository.save(new Role(roleName));
+            }
+        }
+
+        if (userAccountRepository.count() == 0) {
+            UserAccount admin = new UserAccount();
+            admin.setUsername("admin");
+            admin.setEmail("admin@tanhobbq.com");
+            admin.setPassword(passwordEncoder.encode("Admin@123"));
+            admin.setEnabled(true);
+            admin.getRoles().add(roleRepository.findByName(RoleName.SUPER_ADMIN).orElseThrow());
+            userAccountRepository.save(admin);
+
+            restaurantRepository.findById(1L).ifPresent(restaurant -> {
+                UserAccount manager = new UserAccount();
+                manager.setUsername("manager");
+                manager.setEmail("manager@tanhobbq.com");
+                manager.setPassword(passwordEncoder.encode("Manager@123"));
+                manager.setEnabled(true);
+                manager.setRestaurant(restaurant);
+                manager.getRoles().add(roleRepository.findByName(RoleName.MANAGER).orElseThrow());
+                userAccountRepository.save(manager);
+            });
+        }
     }
 }
-

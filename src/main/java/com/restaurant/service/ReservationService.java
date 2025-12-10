@@ -12,6 +12,7 @@ import com.restaurant.model.ReservationStatus;
 import com.restaurant.model.Restaurant;
 import com.restaurant.model.RestaurantTable;
 import com.restaurant.repository.ReservationRepository;
+import com.restaurant.security.AuthorizationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,13 +31,16 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final RestaurantService restaurantService;
     private final CustomerService customerService;
+    private final AuthorizationService authorizationService;
 
     public ReservationService(ReservationRepository reservationRepository,
             RestaurantService restaurantService,
-            CustomerService customerService) {
+            CustomerService customerService,
+            AuthorizationService authorizationService) {
         this.reservationRepository = reservationRepository;
         this.restaurantService = restaurantService;
         this.customerService = customerService;
+        this.authorizationService = authorizationService;
     }
 
     /**
@@ -48,6 +52,7 @@ public class ReservationService {
         Restaurant restaurant = restaurantService.findRestaurantById(request.getRestaurantId());
         RestaurantTable table = resolveTable(request, restaurant);
 
+        authorizationService.assertRestaurantAccess(restaurant.getId());
         validateReservationRequest(request, restaurant, table);
 
         Reservation reservation = buildReservation(request, customer, table);
@@ -61,6 +66,7 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public ReservationResponse getReservationById(Long reservationId) {
         Reservation reservation = findReservationById(reservationId);
+        authorizationService.assertRestaurantAccess(reservation.getTable().getRestaurant().getId());
         return ReservationResponse.fromEntity(reservation);
     }
 
@@ -69,6 +75,7 @@ public class ReservationService {
      */
     public ReservationResponse cancelReservation(Long reservationId) {
         Reservation reservation = findReservationById(reservationId);
+        authorizationService.assertRestaurantAccess(reservation.getTable().getRestaurant().getId());
         validateCancellable(reservation);
         reservation.setStatus(ReservationStatus.CANCELLED);
         Reservation savedReservation = reservationRepository.save(reservation);
@@ -80,6 +87,7 @@ public class ReservationService {
      */
     public ReservationResponse confirmReservation(Long reservationId) {
         Reservation reservation = findReservationById(reservationId);
+        authorizationService.assertRestaurantAccess(reservation.getTable().getRestaurant().getId());
         validateConfirmable(reservation);
         reservation.setStatus(ReservationStatus.CONFIRMED);
         Reservation savedReservation = reservationRepository.save(reservation);
@@ -91,6 +99,7 @@ public class ReservationService {
      */
     public ReservationResponse completeReservation(Long reservationId) {
         Reservation reservation = findReservationById(reservationId);
+        authorizationService.assertRestaurantAccess(reservation.getTable().getRestaurant().getId());
         validateCompletable(reservation);
         reservation.setStatus(ReservationStatus.COMPLETED);
         Reservation savedReservation = reservationRepository.save(reservation);
@@ -115,6 +124,7 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public List<ReservationResponse> getRestaurantReservations(Long restaurantId) {
         restaurantService.findRestaurantById(restaurantId);
+        authorizationService.assertRestaurantAccess(restaurantId);
         return reservationRepository.findByRestaurantId(restaurantId)
                 .stream()
                 .map(ReservationResponse::fromEntity)
